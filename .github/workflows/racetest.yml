@@ -33,4 +33,7 @@ jobs:
           shell: cmd
           run: |
             CRYPTO_THREAD_run_once_fastpath_race.exe
-
+        - name: Test fix
+          shell: cmd
+          run: |
+            CRYPTO_THREAD_run_once_fastpath_race.exe --fix
