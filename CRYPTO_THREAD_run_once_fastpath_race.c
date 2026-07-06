@@ -186,7 +186,14 @@ static DWORD WINAPI writer_thread(LPVOID p)
         sync_barrier(&local_sense);
 
         /* same call as readers */
-        (void)CRYPTO_THREAD_run_once(&register_once, create_global_register);
+        if (CRYPTO_THREAD_run_once(&register_once, create_global_register) != 1) {
+            printf("ERROR: The impossible happened: CRYPTO_THREAD_run_once failed (on Writer)\n");
+            continue;
+        }
+        GLOBAL_REGISTER *gtr = glob_register;
+        if (!gtr) {
+            InterlockedIncrement(&g_violations);
+        }
     }
     return 0;
 }
@@ -204,7 +211,7 @@ static DWORD WINAPI reader_thread(LPVOID p)
 
         /* similar to get_global_tevent_register() in OpenSSL */
         if (CRYPTO_THREAD_run_once(&register_once, create_global_register) != 1) {
-            printf("ERROR: The impossible happened: CRYPTO_THREAD_run_once failed\n");
+            printf("ERROR: The impossible happened: CRYPTO_THREAD_run_once failed (on Reader)\n");
             continue;
         }
 
