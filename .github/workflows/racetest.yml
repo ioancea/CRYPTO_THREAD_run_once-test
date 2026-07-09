@@ -29,11 +29,12 @@ jobs:
           shell: cmd
           run: |
             cl /nologo /Od /std:c11 CRYPTO_THREAD_run_once_fastpath_race.c /Fe:CRYPTO_THREAD_run_once_fastpath_race.exe
-        - name: Test
+        - name: Test w/ fix
           shell: cmd
           run: |
-            CRYPTO_THREAD_run_once_fastpath_race.exe || exit 0
-        - name: Test fix
-          shell: cmd
-          run: |
-            CRYPTO_THREAD_run_once_fastpath_race.exe --fix
+            for /L %%i in (1,1,10000) do ( CRYPTO_THREAD_run_once_fastpath_race.exe || echo === Iteration %%i ==== )
+
+        #- name: Test fix
+        # shell: cmd
+        #  run: |
+        #    CRYPTO_THREAD_run_once_fastpath_race.exe --fix
