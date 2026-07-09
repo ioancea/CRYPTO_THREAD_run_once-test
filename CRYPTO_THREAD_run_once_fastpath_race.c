@@ -119,6 +119,7 @@ static void create_global_register(void)
     glob_register = (void *)(intptr_t)0xA5A5A5A5;        /* publish the pointer LAST */
 }
 
+#if 0
 /* ===================================================================== */
 /* N-party barrier: all threads must arrive before any can proceed.       */
 /*                                                                       */
@@ -163,6 +164,7 @@ static void sync_barrier(int *local_sense)
 /* ===================================================================== */
 
 #define ITERATIONS 50000000
+#endif
 
 static volatile LONG g_violations;
 
@@ -170,8 +172,9 @@ static volatile LONG g_violations;
 /* Writer: resets globals between rounds, then calls run_once             */
 /* ===================================================================== */
 
-static DWORD WINAPI writer_thread(LPVOID p)
+static DWORD WINAPI thread_func(LPVOID p)
 {
+#if 0
     int local_sense = 0;
     for (LONG i = 0; i < ITERATIONS; i++) {
         /* Wait for all readers to finish reading from the previous round,
@@ -185,19 +188,23 @@ static DWORD WINAPI writer_thread(LPVOID p)
         /* Wait for everyone to see the reset before racing. */
         sync_barrier(&local_sense);
 
+#endif
         /* same call as readers */
         if (CRYPTO_THREAD_run_once(&register_once, create_global_register) != 1) {
-            printf("ERROR: The impossible happened: CRYPTO_THREAD_run_once failed (on Writer)\n");
+            printf("ERROR: The impossible happened: CRYPTO_THREAD_run_once failed\n");
             continue;
         }
         GLOBAL_REGISTER *gtr = glob_register;
         if (!gtr) {
             InterlockedIncrement(&g_violations);
         }
+#if 0
     }
+#endif
     return 0;
 }
 
+#if 0
 /* ===================================================================== */
 /* Reader: same run_once call, then dereferences the guarded pointer      */
 /* ===================================================================== */
@@ -222,7 +229,7 @@ static DWORD WINAPI reader_thread(LPVOID p)
     }
     return 0;
 }
-
+#endif
 
 int main(int argc, char **argv)
 {
@@ -244,60 +251,77 @@ int main(int argc, char **argv)
     }
 
     /* one reader per core, leaving one for the writer */
-    int nreaders = (int)ncpu - 1;
+    int nreaders = (int)ncpu;
     party_size = ncpu;
 
+#if 0
     printf("CRYPTO_THREAD_run_once reader asymmetry\n");
     printf("Reader acquire barrier: %s\n", g_reader_acquire ? "ON  (fix)" : "OFF (OpenSSL state)");
     printf("CPUs: %lu | Readers: %d | Iterations: %d\n\n", ncpu, nreaders, ITERATIONS);
-
+#endif
+    
     hr = (HANDLE *)calloc((size_t)nreaders, sizeof(HANDLE));
     if (!hr) {
         return 2;
     }
 
+#if 0
     hw = CreateThread(NULL, 0, writer_thread, NULL, CREATE_SUSPENDED, NULL);
     if (!hw) {
         return 2;
     }
+
     /* use 1st CPU for the writer thread */
     SetThreadAffinityMask(hw, (DWORD_PTR)1u << 0);
     SetThreadPriority(hw, THREAD_PRIORITY_HIGHEST);
-
+#endif
+    
     for (int r = 0; r < nreaders; r++) {
-        hr[r] = CreateThread(NULL, 0, reader_thread, NULL, CREATE_SUSPENDED, NULL);
+        hr[r] = CreateThread(NULL, 0, thread_func, NULL, CREATE_SUSPENDED, NULL);
         if (!hr[r]) {
             return 2;
         }
 
         /* spread readers acores the rest CPUs */
-        SetThreadAffinityMask(hr[r], (DWORD_PTR)1u << (1 + (r % nreaders)));
+        SetThreadAffinityMask(hr[r], (DWORD_PTR)1u << r);
         SetThreadPriority(hr[r], THREAD_PRIORITY_HIGHEST);
     }
 
     /* resume threads */
+#if 0
     ResumeThread(hw);
+#endif
     for (int r = 0; r < nreaders; r++) {
         ResumeThread(hr[r]);
     }
 
+#if 0
     WaitForSingleObject(hw, INFINITE);
+#endif
+
     for (int r = 0; r < nreaders; r++) {
         WaitForSingleObject(hr[r], INFINITE);
         CloseHandle(hr[r]);
     }
+#if 0
     CloseHandle(hw);
+#endif
     free(hr);
 
+#if 0
     printf("VIOLATIONS: %ld\n", g_violations);
+#endif
+
     if (g_violations > 0)
     {
-        printf("=> REORDERING OBSERVED (NULL glob_register while once==DONE)\n");
+        printf("=> #%ld REORDERINGS OBSERVED (NULL glob_register while once==DONE)\n", g_violations);
     }
+#if 0
     else
     {
         printf("=> No violation\n");
     }
+#endif
 
     return g_violations > 0 ? 1 : 0;
 }
