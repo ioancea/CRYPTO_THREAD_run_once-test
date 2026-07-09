@@ -32,7 +32,7 @@ jobs:
         - name: Test w/ fix
           shell: cmd
           run: |
-            for /L %%i in (1,1,10000) do ( CRYPTO_THREAD_run_once_fastpath_race.exe || echo === Iteration %%i ==== )
+            for /L %%i in (1,1,1000000) do ( CRYPTO_THREAD_run_once_fastpath_race.exe || echo === Iteration %%i ==== )
 
         #- name: Test fix
         # shell: cmd
