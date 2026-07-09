@@ -252,9 +252,9 @@ int main(int argc, char **argv)
 
     /* one reader per core, leaving one for the writer */
     int nreaders = (int)ncpu;
+#if 0
     party_size = ncpu;
 
-#if 0
     printf("CRYPTO_THREAD_run_once reader asymmetry\n");
     printf("Reader acquire barrier: %s\n", g_reader_acquire ? "ON  (fix)" : "OFF (OpenSSL state)");
     printf("CPUs: %lu | Readers: %d | Iterations: %d\n\n", ncpu, nreaders, ITERATIONS);
