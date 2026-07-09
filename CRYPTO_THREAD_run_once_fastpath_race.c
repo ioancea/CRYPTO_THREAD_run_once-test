@@ -192,7 +192,7 @@ static DWORD WINAPI thread_func(LPVOID p)
         /* same call as readers */
         if (CRYPTO_THREAD_run_once(&register_once, create_global_register) != 1) {
             printf("ERROR: The impossible happened: CRYPTO_THREAD_run_once failed\n");
-            continue;
+            return 1;
         }
         GLOBAL_REGISTER *gtr = glob_register;
         if (!gtr) {
